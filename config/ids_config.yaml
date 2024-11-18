@@ -1,4 +1,24 @@
-interface: eth0
-rules_dir: rules
-db_url: sqlite:///ids.db
-firewall_config: config/firewall.yaml 
+network:
+  interface: eth0
+  promiscuous: true
+
+detection:
+  rules_dir: rules
+  ml_model_path: models/ids_model.pkl
+
+database:
+  url: sqlite:///ids.db
+
+firewall:
+  enabled: true
+  chain_name: IDS_CHAIN
+  block_duration: 3600  # 1 hour
+
+web_api:
+  host: 0.0.0.0
+  port: 5000
+  debug: false
+
+logging:
+  level: INFO
+  file: logs/ids.log 

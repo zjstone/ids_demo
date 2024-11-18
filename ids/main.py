@@ -1,62 +1,32 @@
-from capture.packet_capture import PacketCapture
-from capture.session_handler import SessionHandler
-from features.packet_features import PacketFeatureExtractor
-from features.session_features import SessionFeatureExtractor
-from detectors.rule_engine import RuleEngine, Rule
-from detectors.ml_engine import MLEngine
-from utils.alert import AlertHandler
-from utils.firewall import IPTablesHandler
-from models.db_manager import DatabaseManager
-from web.api import IDSAPI
-from correlation.event_correlator import EventCorrelator
-import logging
-import threading
-import time
-from datetime import datetime
-from concurrent.futures import ThreadPoolExecutor
+import argparse
+import logging.config
 import yaml
+from pathlib import Path
+from concurrent.futures import ThreadPoolExecutor
+
+from ids.capture.packet_capture import PacketCapture
+from ids.detectors.rule_engine import RuleEngine
+from ids.detectors.ml_engine import MLEngine
+from ids.models.packet_features import PacketFeatures
+from ids.utils.db_manager import DatabaseManager
+from ids.utils.firewall import IPTablesHandler
+from ids.web.api import IDSAPI
 
 class IDS:
     def __init__(self, interface=None, firewall_config=None, db_url=None, rules_dir='rules'):
-        # 设置日志
-        logging.basicConfig(
-            level=logging.INFO,
-            format='%(asctime)s - %(name)s - %(levelname)s - %(message)s'
-        )
+        # 加载配置
+        self.config = self._load_config()
         
-        # 初始化防火墙处理器
-        self.firewall_handler = IPTablesHandler(
-            ban_time=300,  # 5分钟封禁
-            remote_config=firewall_config
-        )
-        
-        self.packet_capture = PacketCapture(interface)
-        self.session_handler = SessionHandler()
-        self.packet_feature_extractor = PacketFeatureExtractor()
-        self.session_feature_extractor = SessionFeatureExtractor()
+        # 初始化组件
+        self.packet_capture = PacketCapture(interface or self.config['network']['interface'])
         self.rule_engine = RuleEngine(rules_dir)
         self.ml_engine = MLEngine()
-        self.alert_handler = AlertHandler(firewall_handler=self.firewall_handler)
+        self.db_manager = DatabaseManager(db_url or self.config['database']['url'])
+        self.firewall = IPTablesHandler(firewall_config)
+        self.api = IDSAPI(self)
         
-        # 添加防火墙清理线程
-        self.firewall_cleanup_thread = threading.Thread(
-            target=self._firewall_cleanup_loop,
-            daemon=True
-        )
-        
-        # 初始化数据库
-        self.db_manager = DatabaseManager(db_url or 'sqlite:///ids.db')
-        
-        # 初始化Web API
-        self.api = IDSAPI(self.db_manager, self)
-        self.api_thread = threading.Thread(target=self.api.run)
-        
-        # 初始化事件关联器
-        self.event_correlator = EventCorrelator(self.db_manager)
-        
-        # 添加线程池
-        self.detection_executor = ThreadPoolExecutor(max_workers=2)
-        
+        # 创建线程池
+        self.detection_executor = ThreadPoolExecutor(max_workers=2)        
         # 添加一些基本规则
         self._setup_rules()
         

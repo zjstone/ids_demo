@@ -1,15 +1,15 @@
-from flask import Flask, request, jsonify
-from flask_cors import CORS
-from datetime import datetime, timedelta
+from flask import Flask, jsonify, request
+import logging
+from typing import Dict
 
-app = Flask(__name__)
-CORS(app)
+from ids.models.packet_features import PacketFeatures
+from ids.detectors.rule_engine import Rule
 
 class IDSAPI:
-    def __init__(self, db_manager, ids_instance):
-        self.db = db_manager
+    def __init__(self, ids_instance):
+        self.app = Flask(__name__)
         self.ids = ids_instance
-        self.setup_routes()
+        self.logger = logging.getLogger(__name__)
         
     def setup_routes(self):
         # 告警相关

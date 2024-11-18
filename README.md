@@ -21,7 +21,7 @@
 
 ```bash
 # 克隆项目
-git clone https://github.com/your-username/ids-project.git
+git clone https://github.com/zjstone/ids_demo.git
 cd ids-project
 
 # 安装依赖

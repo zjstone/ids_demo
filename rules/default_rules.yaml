@@ -1,0 +1,16 @@
+rules:
+  - name: "Port Scan Detection"
+    conditions:
+      - ["tcp_dport", "in", "1-1024"]
+      - ["packet_count", ">", 100]
+      - ["duration", "<", 10]
+    severity: "high"
+    enabled: true
+    
+  - name: "SYN Flood Detection"
+    conditions:
+      - ["tcp_flags", "==", "0x02"]
+      - ["packet_count", ">", 200]
+      - ["duration", "<", 5]
+    severity: "high"
+    enabled: true 

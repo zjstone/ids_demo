@@ -1,0 +1,4 @@
+interface: eth0
+rules_dir: rules
+db_url: sqlite:///ids.db
+firewall_config: config/firewall.yaml 
